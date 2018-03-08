@@ -2,7 +2,7 @@
 import json
 import requests
 
-URL_PRE = "https://exxo:exxopass123@"
+URL_PRE = ""
 
 class LocationRequester(object):
     """This class fetches and parses santinel location data."""
