@@ -1,8 +1,11 @@
 """This module process location data."""
 import json
 import requests
+import LocationStorage
 
 URL_PRE = ""
+
+SAVER = LocationStorage.Saver()
 
 class LocationRequester(object):
     """This class fetches and parses santinel location data."""
@@ -16,6 +19,14 @@ class LocationRequester(object):
 
     def __init__(self, requestURL):
         self.target_url = requestURL
+
+    def check_location(self):
+        '''Checks location update and sends a notification'''
+        parsed_message = self.parse_request_json()
+        if not parsed_message:
+            return False
+        
+
 
     def request_location(self):
         """request_location(self) -> requests location satellite images as json"""
@@ -34,6 +45,8 @@ class LocationRequester(object):
             self.product_title = value["title"]
             self.location_summary = value["summary"]
             self.product_id = value["id"]
+            if SAVER.insert_location_info(self.product_id) == False:
+                return False
 
             for lst in value['link']:
                 if "rel" in lst:
@@ -62,3 +75,7 @@ URL_FULL = URL_PRE + URL_BASE + URL_PARAMS1 + URL_PARAMS2 + URL_PARAMS3 + URL_PA
 LOC_REQ = LocationRequester(URL_FULL)
 
 print LOC_REQ.parse_request_json()
+
+SAVER.fetch_lastest_loc_id()
+#SAVER.remove_all_files()
+
