@@ -2,10 +2,63 @@
 import json
 import requests
 import LocationStorage
+import boto3
+from botocore.exceptions import ClientError
 
-URL_PRE = ""
+URL_PRE = "https://exxo:exxopass123@"
 
 SAVER = LocationStorage.Saver()
+
+class Notifier(object):
+    '''sends email notifications'''
+    username = ""
+    password = ""
+
+    def __init__(self, username = "", password = ""):
+        self.username = username
+        self.password = password
+
+    def send_email(self, send_to, email_text):
+        '''sends an email'''
+        sender = "exxotechnologies@gmail.com"
+        recipient = "bne.rca@gmail.com"
+        aws_region = "eu-west-1"
+        subject = "Location update"
+        char_set = "UTF-8"
+        client = boto3.client('ses', region_name=aws_region)
+
+        try:
+            #Provide the contents of the email.
+            response = client.send_email(
+                Destination={
+                    'ToAddresses': [
+                    recipient,
+                    ],
+                },
+                Message={
+                    'Body': {
+                        'Html': {
+                            'Charset': char_set,
+                            'Data': email_text,
+                        },
+                        'Text': {
+                            'Charset': char_set,
+                            'Data': email_text,
+                        },
+                    },
+                    'Subject': {
+                        'Charset': char_set,
+                        'Data': subject,
+                    },
+                },
+                Source=sender,
+            )
+# Display an error if something goes wrong.
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+        else:
+            print("Email sent! Message ID:"),
+            print(response['ResponseMetadata']['RequestId'])
 
 class LocationRequester(object):
     """This class fetches and parses santinel location data."""
@@ -20,13 +73,22 @@ class LocationRequester(object):
     def __init__(self, requestURL):
         self.target_url = requestURL
 
+    def goo_shorten_url(self, url):
+        #return url
+        api_key = "AIzaSyDS6tMQdPf4knUMU3QCwFEdxDMsXkLg8sc"
+        req_url = 'https://www.googleapis.com/urlshortener/v1/url?key=' + api_key
+        print "Long url to process " + url
+        payload = {'longUrl': url}
+        headers = {'content-type': 'application/json'}
+        r = requests.post(req_url, json=payload, headers=headers)
+        resp = json.loads(r.text)
+        return resp['id']
+
     def check_location(self):
         '''Checks location update and sends a notification'''
         parsed_message = self.parse_request_json()
         if not parsed_message:
             return False
-        
-
 
     def request_location(self):
         """request_location(self) -> requests location satellite images as json"""
@@ -57,6 +119,9 @@ class LocationRequester(object):
 
                 download_url = URL_PRE + self.base_download_url[8:]
                 preview_url = URL_PRE + self.base_preview_url[8:]
+                #shortPreview = self.goo_shorten_url(preview_url)
+                #shortDownload = self.goo_shorten_url(download_url)
+
                 loc_summary_text = "Location summary: " + self.location_summary + "\n"
                 loc_preview_text = "Access location preview: " + preview_url + "\n"
                 loc_url_text = "Download location: " + download_url + "\n"
@@ -74,8 +139,12 @@ URL_PARAMS4 = '&format=json'
 URL_FULL = URL_PRE + URL_BASE + URL_PARAMS1 + URL_PARAMS2 + URL_PARAMS3 + URL_PARAMS4
 LOC_REQ = LocationRequester(URL_FULL)
 
-print LOC_REQ.parse_request_json()
+MAIL = LOC_REQ.parse_request_json() 
+print MAIL
+# if MAIL != False:
+#     print "Sending email"
+#     Notifier().send_email(MAIL, "bne.rca@gmail.com")
 
-SAVER.fetch_lastest_loc_id()
+# SAVER.fetch_lastest_loc_id()
 #SAVER.remove_all_files()
 
