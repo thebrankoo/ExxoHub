@@ -2,8 +2,8 @@
 import json
 import requests
 import LocationStorage
-import boto3
-from botocore.exceptions import ClientError
+# import boto3
+# from botocore.exceptions import ClientError
 
 URL_PRE = "https://exxo:exxopass123@"
 
@@ -18,47 +18,47 @@ class Notifier(object):
         self.username = username
         self.password = password
 
-    def send_email(self, send_to, email_text):
-        '''sends an email'''
-        sender = "exxotechnologies@gmail.com"
-        recipient = "bne.rca@gmail.com"
-        aws_region = "eu-west-1"
-        subject = "Location update"
-        char_set = "UTF-8"
-        client = boto3.client('ses', region_name=aws_region)
+#    def send_email(self, send_to, email_text):
+#         '''sends an email'''
+#         sender = "exxotechnologies@gmail.com"
+#         recipient = "bne.rca@gmail.com"
+#         aws_region = "eu-west-1"
+#         subject = "Location update"
+#         char_set = "UTF-8"
+#         client = boto3.client('ses', region_name=aws_region)
 
-        try:
-            #Provide the contents of the email.
-            response = client.send_email(
-                Destination={
-                    'ToAddresses': [
-                    recipient,
-                    ],
-                },
-                Message={
-                    'Body': {
-                        'Html': {
-                            'Charset': char_set,
-                            'Data': email_text,
-                        },
-                        'Text': {
-                            'Charset': char_set,
-                            'Data': email_text,
-                        },
-                    },
-                    'Subject': {
-                        'Charset': char_set,
-                        'Data': subject,
-                    },
-                },
-                Source=sender,
-            )
-# Display an error if something goes wrong.
-        except ClientError as e:
-            print(e.response['Error']['Message'])
-        else:
-            print("Email sent! Message ID:"),
-            print(response['ResponseMetadata']['RequestId'])
+#         try:
+#             #Provide the contents of the email.
+#             response = client.send_email(
+#                 Destination={
+#                     'ToAddresses': [
+#                     recipient,
+#                     ],
+#                 },
+#                 Message={
+#                     'Body': {
+#                         'Html': {
+#                             'Charset': char_set,
+#                             'Data': email_text,
+#                         },
+#                         'Text': {
+#                             'Charset': char_set,
+#                             'Data': email_text,
+#                         },
+#                     },
+#                     'Subject': {
+#                         'Charset': char_set,
+#                         'Data': subject,
+#                     },
+#                 },
+#                 Source=sender,
+#             )
+# # Display an error if something goes wrong.
+#         except ClientError as e:
+#             print(e.response['Error']['Message'])
+#         else:
+#             print("Email sent! Message ID:"),
+#             print(response['ResponseMetadata']['RequestId'])
 
 class LocationRequester(object):
     """This class fetches and parses santinel location data."""
@@ -77,7 +77,6 @@ class LocationRequester(object):
         #return url
         api_key = "AIzaSyDS6tMQdPf4knUMU3QCwFEdxDMsXkLg8sc"
         req_url = 'https://www.googleapis.com/urlshortener/v1/url?key=' + api_key
-        print "Long url to process " + url
         payload = {'longUrl': url}
         headers = {'content-type': 'application/json'}
         r = requests.post(req_url, json=payload, headers=headers)
@@ -112,21 +111,24 @@ class LocationRequester(object):
 
             for lst in value['link']:
                 if "rel" in lst:
-                    if lst["rel"] == "icon":
-                        self.base_preview_url = lst["href"]
-                else:
-                    self.base_download_url = lst["href"]
+                    if lst["rel"] == "alternative":
+                        self.base_preview_url = lst["href"] + "/Products('Quicklook')/$value"
+                        self.base_download_url = lst["href"] + "/$value"
 
-                download_url = URL_PRE + self.base_download_url[8:]
-                preview_url = URL_PRE + self.base_preview_url[8:]
-                #shortPreview = self.goo_shorten_url(preview_url)
-                #shortDownload = self.goo_shorten_url(download_url)
+                        download_url = URL_PRE + self.base_download_url[8:]
+                        shortDownload = self.goo_shorten_url(download_url)
 
-                loc_summary_text = "Location summary: " + self.location_summary + "\n"
-                loc_preview_text = "Access location preview: " + preview_url + "\n"
-                loc_url_text = "Download location: " + download_url + "\n"
-                mail_text += loc_summary_text + loc_preview_text + loc_url_text
-                mail_text += "=================================\n"
+                        if self.base_preview_url == "":
+                            shortPreview = "Preview is not available"
+                        else:    
+                            preview_url = URL_PRE + self.base_preview_url[8:]
+                            shortPreview = self.goo_shorten_url(preview_url)
+
+                        loc_summary_text = "Location summary: " + self.location_summary + "\n"
+                        loc_preview_text = "Access location preview: " + shortPreview + "\n"
+                        loc_url_text = "Download location: " + shortDownload + "\n"
+                        mail_text += loc_summary_text + loc_preview_text + loc_url_text
+                        mail_text += "=================================\n"
 
         return mail_text
 
@@ -146,5 +148,5 @@ print MAIL
 #     Notifier().send_email(MAIL, "bne.rca@gmail.com")
 
 # SAVER.fetch_lastest_loc_id()
-#SAVER.remove_all_files()
+# SAVER.remove_all_files()
 
